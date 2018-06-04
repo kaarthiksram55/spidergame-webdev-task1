@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<body onload ='initialize(event)'  width = '500' height = '500'>
+	<script type="application/javascript">
+		var c, ctx;
+
+		var mountlefty, mountrighty, mountleftx, mountrightx, mounttopx, mounttopy;
+		var slopeleft, sloperight;
+
+		var w1 = 41,  h1 = 31, w2 = 41, h2 = 31;
+		var x1, y1, x2, y2;
+		//var tank1 = new Image(), tank2 = new Image();
+
+		var missileradius = 4;
+		var p1mx, p1my;
+		var p2mx, p2my;
+
+		var missilespeed = 27.0, speedx = 0, speedy = 0;
+		var angledeg, angleflag = 1, missilemotion;
+
+		var missileflag = 0, playerflag = 1, player = 1, chance = 0, powerflag = 0;
+		var scorep1 = 0, scorep2 = 0;
+
+		var pauseflag = 0;
+
+		function initialize(event){
+			mountlefty = 400 + Math.random()*(window.innerHeight-450);
+			mountrighty = 400 + Math.random()*(window.innerHeight-450);
+			mounttopy = 200 + Math.random()*(200);
+			mountrightx = window.innerWidth-600 + Math.random()*(200);
+			mountleftx = 600 - Math.random()*(200);
+			mounttopx = 600 + Math.random()*(window.innerWidth-1200);
+			x1 = 50 + Math.random()*(300);
+			y1 = mountlefty-h1;
+			x2 = window.innerWidth - 50 - Math.random()*(300);
+			y2 = mountrighty-h2;
+			p1mx = x1+w1-1;
+			p1my = y1+1;
+			p2mx = x2+1;
+			p2my = y2+1;
+			c = document.getElementById("c");
+			if(c.getContext){
+				ctx = c.getContext("2d");
+				ctx.canvas.width = window.innerWidth;
+			    ctx.canvas.height = window.innerHeight;
+			    drawLand();
+				drawTank();
+				drawMissile(1);
+				score();
+			}
+		}	
+
+		function drawLand(){
+			ctx.fillStyle = 'rgb(0,255,0)';
+			ctx.beginPath();
+			ctx.moveTo(0,mountlefty);
+			ctx.lineTo(mountleftx,mountlefty);
+			ctx.lineTo(mounttopx,mounttopy);
+			ctx.lineTo(mountrightx,mountrighty);
+			ctx.lineTo(window.innerWidth,mountrighty);
+			ctx.lineTo(window.innerWidth,window.innerHeight);
+			ctx.lineTo(0,window.innerHeight);
+			ctx.fill();
+		}
+
+		function drawTank(){
+			ctx.beginPath();
+			ctx.fillStyle = 'rgb(255,0,0)';
+			ctx.fillRect(x1,y1,w1,h1);
+			ctx.fillStyle = 'rgb(0,0,255)';
+			ctx.fillRect(x2,y2,w2,h2);
+			/*tank1.onload = function(){ctx.drawImage(tank1,x1,y1,w1,h1);};
+			tank2.onload = function(){ctx.drawImage(tank2,x2,y2,w2,h2);};
+			tank1.src = 'C:\Users\Ramachandran S\Downloads\normal2.png';
+			tank2.src = 'C:\Users\Ramachandran S\Downloads\normal.png';*/
+			ctx.closePath();
+		}
+
+		function drawMissile(p){
+			ctx.fillStyle = 'rgb(0,0,0)';
+			ctx.beginPath();
+			if(p==1)
+				ctx.arc(p1mx,p1my,missileradius,0,Math.PI*2,true);
+			else
+				ctx.arc(p2mx,p2my,missileradius,0,Math.PI*2,true);
+			ctx.fill();
+		}
+
+		function pathMissileX(p,speed){
+			if(p==1)
+				p1mx+=speed;
+			else
+				p2mx-=speed;
+		}
+
+		function pathMissileY(p,speed){
+			if(p==1)
+				p1my-=speed;
+			else
+				p2my-=speed;
+		}
+
+		function inputAngle(p){
+				if(p==1)
+					angledeg = document.getElementById('p1a').value;
+				else
+					angledeg = document.getElementById('p2a').value;
+				if(angledeg=="")
+					angleflag = 0;
+		}
+
+		function fireMissile(p){
+			angleflag = 1;
+			if((p==1&&player==1)||(p==2&&player==2))
+				playerflag = 1;
+			else
+				playerflag = 0;
+			inputAngle(p);
+			if(missileflag==0&&angleflag==1&&playerflag==1&&powerflag==1&&chance<10){
+				if(player==1)player=2;
+				else player = 1;				
+				speedx = missilespeed*Math.cos(angledeg*Math.PI/180);
+				speedy = missilespeed*Math.sin(angledeg*Math.PI/180);
+				missilemotion = setInterval(function(){
+					if(pauseflag==0){
+						pathMissileX(p,speedx);
+						pathMissileY(p,speedy);
+						speedy-=0.2;
+						ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+						drawLand();
+						drawTank();
+						ctx.fillStyle = 'rgb(0,0,0)';
+						drawMissile(p);
+						collision(p);
+						score();
+					}
+				},20);
+				missileflag = 1;
+				chance++;
+			}
+		}
+
+		function missileOnStrike(p,q){
+			clearInterval(missilemotion);
+			setTimeout(function(){
+				resetMissilePosition(p);
+				drawLand();
+				drawTank();
+				drawMissile(q);
+				score();
+				missileflag = 0;
+			},1500);
+		}
+
+		function resetMissilePosition(p){
+			if(p==1){
+				p1mx = x1+w1-1;
+				p1my = y1+1;
+			}
+			else{
+				p2mx = x2+1;
+				p2my = y2+1;
+			}
+		}
+
+		function collision(p){
+			var x,y,tx,ty,q;
+			if(p==1){
+				x = p1mx;
+				y = p1my;
+				tx = x2;
+				ty = y2;
+				q = 2
+			}
+			else{
+				x = p2mx;
+				y = p2my;
+				tx = x1;
+				ty = y1;
+				q = 1;
+			}
+			slopeleft = (mountlefty-mounttopy)/(mountleftx-mounttopx);
+			sloperight = (mountrighty-mounttopy)/(mountrightx-mounttopx);
+			if((y>=mounttopy+slopeleft*(x-mounttopx)&&y>=mounttopy+sloperight*(x-mounttopx))||(y>=mountlefty&&y<=mounttopy+slopeleft*(x-mounttopx))||(y>=mountrighty&&y<=mounttopy+sloperight*(x-mounttopx))||(x>=window.innerWidth||x<=0)){
+				missileOnStrike(p,q);
+			}
+			else if(y+missileradius>=ty&&x+missileradius>=tx&&x-missileradius<=tx+w1){
+				missileOnStrike(p,q);
+				score(p);
+			}
+		}
+
+		function score(p){
+			if(p==1)
+				scorep1+=10;			
+			else if(p==2)
+				scorep2+=10;
+			ctx.fillStyle = 'rgb(0,0,0)';
+			ctx.fillText("p1 score: "+scorep1,10,10);
+			ctx.fillText("p2 score: "+scorep2,10,30);
+		}
+
+		function pauseState(){
+			if(pauseflag==0){
+				pauseflag=1;
+				document.getElementById('pause').value = 'resume';
+			}
+			else{
+				pauseflag=0;
+				document.getElementById('pause').value = 'pause';
+			}
+		}
+	</script>
+	<canvas id = 'c'>
+	</canvas>
+	<input type="text" id="p1a"> <input type="button" id="p1" value='fire' onclick="fireMissile(1)" >
+	<input type="text" id="p2a"> <input type="button" id="p2" value='fire' onclick="fireMissile(2)" >
+	<input type="button" id="pause" value='pause' onclick="pauseState()" >
+	<input type="button" id="pause" value='restart' onclick="window.location.reload(true);" >
+	<input type="radio" name="power" onclick="missilespeed = 14;powerflag = 1"> low
+	<input type="radio" name="power" onclick="missilespeed = 16;powerflag = 1"> medium
+	<input type="radio" name="power" onclick="missilespeed = 18;powerflag = 1"> high
+</body>
+</html>
